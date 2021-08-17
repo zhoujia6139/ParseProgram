@@ -17,6 +17,11 @@ const connection = mysql.createConnection({
     database: 'elec_price'
 })
 
+connection.connect(err => {
+    if(err) throw err;
+    console.log('mysql connncted success!');
+})
+
 let getDamDateFormat = function(dateStr, hour) {
     //dateStr = 12/01/2010
     // hour = 03:00
