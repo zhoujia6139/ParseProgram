@@ -23,6 +23,13 @@ http.createServer(function(req, res){
     console.log("settlement_point=" + settlement_point);
     console.log("11111111111:start_time="+start_time + " end_time="+end_time);
 
+    let diff = end_time - start_time;
+    if (diff > 1000000) {
+        res.write("time diff too big.");
+        res.end();
+        return;
+    }
+
     if (start_time < end_time && settlement_point.length>0) {
         let damSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from dam_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point=\"" + settlement_point + "\" AND repeated_hour_flag=\"N\"";
         let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"N\" AND settlement_point_type=\"SH\"";
