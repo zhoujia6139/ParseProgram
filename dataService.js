@@ -9,6 +9,10 @@ const connection = mysql.createConnection({
     database: 'elec_price'
 })
 
+connection.connect(err => {
+    if(err) throw err;
+    console.log('mysql connncted success!');
+})
 
 http.createServer(function(req, res){
     var params = url.parse(req.url, true).query;
