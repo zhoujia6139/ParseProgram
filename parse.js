@@ -41,6 +41,7 @@ let getRtmDateFormat = function(dateStr, hour, interval) {
     dateStr = strArray[2] + "-" + strArray[0] + "-" + strArray[1];
 
     let timeStr;
+    hour = hour - 1;
     if (hour < 10) {
         timeStr = "0" + hour + ":";
     } else {
@@ -77,13 +78,23 @@ let executeDamQuery = function(dataArray, i) {
     let deliveryDateTime = getDamDateFormat(deliveryDate, hourEnding);
     if (deliveryDateTime.length !== 19) {
         console.log("getDamDateFormat returns a wrong deliveryDateTime = " + deliveryDateTime);
+        setTimeout(() => {
+            i = i + 1;
+            if (i<dataArray.length) {
+                executeDamQuery(dataArray, i)
+            } else {
+                console.log("finished. i=" + i);
+            }
+
+        }, 0);
         return;
     }
 
-    let sql = "insert into dam_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPoint + "\", " + settlementPointPrice + ")"
-    connection.query(sql, (err ,results, filelds) => {
+    let data = [[deliveryDateTime, deliveryDate, hourEnding, hourFlag, settlementPoint, settlementPointPrice]];
+    const sql = "insert into dam_history VALUES ?";
+    connection.query(sql, [data],(err ,results, filelds) => {
         if (err) {
-            console.log("query error, sql=" + sql);
+            console.error(err);
         }
         setTimeout(() => {
             i = i + 1;
@@ -150,10 +161,11 @@ let executeRtmQuery = function(dataArray, i) {
         return;
     }
 
-    let sql = "insert into rtm_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPointName + "\", \"" + settlementPointType + "\", "+ settlementPointPrice + ")"
-    connection.query(sql, (err ,results, filelds) => {
+    let data = [[deliveryDateTime, deliveryDate, deliveryHour, deliveryInterval, hourFlag, settlementPointName, settlementPointType, settlementPointPrice]];
+    const sql = "insert into rtm_history VALUES ?";
+    connection.query(sql, [data], (err ,results, filelds) => {
         if (err) {
-            console.log("query error, sql=" + sql);
+            console.error(err);
         }
         setTimeout(() => {
             i = i + 1;
@@ -182,33 +194,33 @@ let handleRtmFile = function (filePath) {
 }
 
 let start = function() {
-    // let dam_state = fs.statSync(dam_path);
-    // if (dam_state.isDirectory()) {
-    //     let files = fs.readdirSync(dam_path);
-    //     files.forEach(file=>{
-    //         let filePath = path.join(dam_path,file);
-    //         console.log("handling dam fileName = " + filePath);
-    //         if (filePath.indexOf(".xlsx") > 0) {
-    //             handleDamFile(filePath);
-    //         }
-    //     });
-    // } else {
-    //     console.log("dam_path is not directory.");
-    // }
+    let dam_state = fs.statSync(dam_path);
+    if (dam_state.isDirectory()) {
+        let files = fs.readdirSync(dam_path);
+        files.forEach(file=>{
+            let filePath = path.join(dam_path,file);
+            console.log("handling dam fileName = " + filePath);
+            if (filePath.indexOf(".xlsx") > 0) {
+                handleDamFile(filePath);
+            }
+        });
+    } else {
+        console.log("dam_path is not directory.");
+    }
 
-let rtm_state = fs.statSync(rtm_path);
-if (rtm_state.isDirectory()) {
-    let files = fs.readdirSync(rtm_path);
-    files.forEach(file=>{
-        let filePath = path.join(rtm_path,file);
-        console.log("handling rtm fileName = " + filePath);
-        if (filePath.indexOf(".xlsx") > 0) {
-            handleRtmFile(filePath);
-        }
-    });
-} else {
-    console.log("rtm_path is not directory.");
-}
+// let rtm_state = fs.statSync(rtm_path);
+// if (rtm_state.isDirectory()) {
+//     let files = fs.readdirSync(rtm_path);
+//     files.forEach(file=>{
+//         let filePath = path.join(rtm_path,file);
+//         console.log("handling rtm fileName = " + filePath);
+//         if (filePath.indexOf(".xlsx") > 0) {
+//             handleRtmFile(filePath);
+//         }
+//     });
+// } else {
+//     console.log("rtm_path is not directory.");
+// }
 }
 
 connection.connect(err => {
