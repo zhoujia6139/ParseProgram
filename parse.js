@@ -6,8 +6,8 @@ var XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 
-const dam_path = "./data/dam";
-const rtm_path = "./data/rtm";
+const dam_path = "./data/";
+const rtm_path = "./data/";
 
 const connection = mysql.createConnection({
     host: 'localhost', // 填写你的mysql host
@@ -15,11 +15,6 @@ const connection = mysql.createConnection({
     user: 'root', // 填写你的mysql用户名
     password: 'zhoujia', // 填写你的mysql密码
     database: 'elec_price'
-})
-
-connection.connect(err => {
-    if(err) throw err;
-    console.log('mysql connncted success!');
 })
 
 let getDamDateFormat = function(dateStr, hour) {
@@ -46,7 +41,6 @@ let getRtmDateFormat = function(dateStr, hour, interval) {
     dateStr = strArray[2] + "-" + strArray[0] + "-" + strArray[1];
 
     let timeStr;
-    hour = hour - 1;
     if (hour < 10) {
         timeStr = "0" + hour + ":";
     } else {
@@ -73,33 +67,104 @@ try{
     console.log(err);
 }
 
+let executeDamQuery = function(dataArray, i) {
+    let tmpData = dataArray[i];
+    let deliveryDate = tmpData["Delivery Date"];
+    let hourEnding = tmpData["Hour Ending"];
+    let hourFlag = tmpData["Repeated Hour Flag"];
+    let settlementPoint = tmpData["Settlement Point"];
+    let settlementPointPrice = tmpData["Settlement Point Price"];
+    let deliveryDateTime = getDamDateFormat(deliveryDate, hourEnding);
+    if (deliveryDateTime.length !== 19) {
+        console.log("getDamDateFormat returns a wrong deliveryDateTime = " + deliveryDateTime);
+        return;
+    }
+
+    let sql = "insert into dam_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPoint + "\", " + settlementPointPrice + ")"
+    connection.query(sql, (err ,results, filelds) => {
+        if (err) {
+            console.log("query error, sql=" + sql);
+        }
+        setTimeout(() => {
+            i = i + 1;
+            if (i<dataArray.length) {
+                executeDamQuery(dataArray, i)
+            } else {
+                console.log("finished. i=" + i);
+            }
+
+        }, 0);
+    })
+}
+
 let handleDamFile = function (filePath) {
     const wb = XLSX.readFile(filePath);
     let sheetNames = wb.SheetNames;
     for (var i=0; i<sheetNames.length; i++) {
         let sheetName = sheetNames[i];
+        console.log("sheetName="+sheetName);
         let workSheet = wb.Sheets[sheetName];
         let data = XLSX.utils.sheet_to_json(workSheet);
-        // console.log(JSON.stringify(data));
-        for (let i=0; i<data.length; i++) {
-            let tmpData = data[i];
-            let deliveryDate = tmpData["Delivery Date"];
-            let hourEnding = tmpData["Hour Ending"];
-            let hourFlag = tmpData["Repeated Hour Flag"];
-            let settlementPoint = tmpData["Settlement Point"];
-            let settlementPointPrice = tmpData["Settlement Point Price"];
-            let deliveryDateTime = getDamDateFormat(deliveryDate, hourEnding);
-            if (deliveryDateTime.length !== 19) {
-                console.log("getDamDateFormat returns a wrong deliveryDateTime = " + deliveryDateTime);
-                return;
-            }
-
-            let sql = "insert into dam_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPoint + "\", " + settlementPointPrice + ")"
-            connection.query(sql, (err ,results, filelds) => {
-                if (err) throw err;
-            })
+        if (data.length > 0) {
+            console.log("data set length="+data.length);
+            executeDamQuery(data, 0);
         }
     }
+}
+
+let executeRtmQuery = function(dataArray, i) {
+    let tmpData = dataArray[i];
+    let deliveryDate = tmpData["Delivery Date"];
+    let deliveryHour = tmpData["Delivery Hour"];
+    let deliveryInterval = tmpData["Delivery Interval"];
+    let hourFlag = tmpData["Repeated Hour Flag"];
+    let settlementPointName = tmpData["Settlement Point Name"];
+    let settlementPointType = tmpData["Settlement Point Type"];
+    let settlementPointPrice = tmpData["Settlement Point Price"];
+    if (typeof(deliveryDate) !== 'string') {
+        console.log("deliveryDate is not string");
+        console.log("tmpData="+JSON.stringify(tmpData));
+        setTimeout(() => {
+            i = i + 1;
+            if (i<dataArray.length) {
+                executeRtmQuery(dataArray, i)
+            } else {
+                console.log("finished. i=" + i);
+            }
+
+        }, 0);
+        return;
+    }
+    let deliveryDateTime = getRtmDateFormat(deliveryDate, deliveryHour, deliveryInterval);
+    if (deliveryDateTime.length !== 19) {
+        console.log("getRtmDateFormat returns a wrong deliveryDateTime = " + deliveryDateTime);
+        setTimeout(() => {
+            i = i + 1;
+            if (i<dataArray.length) {
+                executeRtmQuery(dataArray, i)
+            } else {
+                console.log("finished. i=" + i);
+            }
+
+        }, 0);
+        return;
+    }
+
+    let sql = "insert into rtm_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPointName + "\", \"" + settlementPointType + "\", "+ settlementPointPrice + ")"
+    connection.query(sql, (err ,results, filelds) => {
+        if (err) {
+            console.log("query error, sql=" + sql);
+        }
+        setTimeout(() => {
+            i = i + 1;
+            if (i<dataArray.length) {
+                executeRtmQuery(dataArray, i)
+            } else {
+                console.log("finished. i=" + i);
+            }
+
+        }, 0);
+    })
 }
 
 let handleRtmFile = function (filePath) {
@@ -109,46 +174,27 @@ let handleRtmFile = function (filePath) {
         let sheetName = sheetNames[i];
         let workSheet = wb.Sheets[sheetName];
         let data = XLSX.utils.sheet_to_json(workSheet);
-        //console.log(JSON.stringify(data));
-        for (let i=0; i<data.length; i++) {
-            let tmpData = data[i];
-            let deliveryDate = tmpData["Delivery Date"];
-            let deliveryHour = tmpData["Delivery Hour"];
-            let deliveryInterval = tmpData["Delivery Interval"];
-            let hourFlag = tmpData["Repeated Hour Flag"];
-            let settlementPointName = tmpData["Settlement Point Name"];
-            let settlementPointType = tmpData["Settlement Point Type"];
-            let settlementPointPrice = tmpData["Settlement Point Price"];
-            if (typeof(deliveryDate) !== 'string') {
-                console.log("deliveryDate is not string");
-                console.log("tmpData="+JSON.stringify(tmpData));
-                continue;
-            }
-            let deliveryDateTime = getRtmDateFormat(deliveryDate, deliveryHour, deliveryInterval);
-            if (deliveryDateTime.length !== 19) {
-                console.log("getRtmDateFormat returns a wrong deliveryDateTime = " + deliveryDateTime);
-                return;
-            }
-
-            let sql = "insert into rtm_history VALUES(" + "\'" + deliveryDateTime + "\', \"" + hourFlag + "\", \"" + settlementPointName + "\", \"" + settlementPointType + "\", "+ settlementPointPrice + ")"
-            connection.query(sql, (err ,results, filelds) => {
-                if (err) throw err;
-            })
+        if (data.length > 0) {
+            console.log("data set length="+data.length);
+            executeRtmQuery(data, 0);
         }
     }
 }
 
-let dam_state = fs.statSync(dam_path);
-if (dam_state.isDirectory()) {
-    let files = fs.readdirSync(dam_path);
-    files.forEach(file=>{
-        let filePath = path.join(dam_path,file);
-        console.log("handling dam fileName = " + filePath);
-        handleDamFile(filePath);
-    });
-} else {
-    console.log("dam_path is not directory.");
-}
+let start = function() {
+    // let dam_state = fs.statSync(dam_path);
+    // if (dam_state.isDirectory()) {
+    //     let files = fs.readdirSync(dam_path);
+    //     files.forEach(file=>{
+    //         let filePath = path.join(dam_path,file);
+    //         console.log("handling dam fileName = " + filePath);
+    //         if (filePath.indexOf(".xlsx") > 0) {
+    //             handleDamFile(filePath);
+    //         }
+    //     });
+    // } else {
+    //     console.log("dam_path is not directory.");
+    // }
 
 let rtm_state = fs.statSync(rtm_path);
 if (rtm_state.isDirectory()) {
@@ -156,11 +202,21 @@ if (rtm_state.isDirectory()) {
     files.forEach(file=>{
         let filePath = path.join(rtm_path,file);
         console.log("handling rtm fileName = " + filePath);
-        handleRtmFile(filePath);
+        if (filePath.indexOf(".xlsx") > 0) {
+            handleRtmFile(filePath);
+        }
     });
 } else {
     console.log("rtm_path is not directory.");
 }
+}
+
+connection.connect(err => {
+    if(err) throw err;
+    console.log('mysql connncted success!');
+    start();
+})
+
 
 
 
