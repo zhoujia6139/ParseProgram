@@ -113,7 +113,15 @@ http.createServer(function(req, res){
     req.on('end', function(){
         // post = querystring.parse(post);
         console.log("post="+post);
-        var reqArray = JSON.parse(post);
+        var reqArray = [];
+        try{
+            reqArray = JSON.parse(post);
+        } catch (e) {
+            console.log("wrong json format");
+            res.write("wrong json format");
+            res.end();
+            return;
+        }
 
         if (reqArray.length > 4) {
             res.write("req size exceeds the limit = 4");
@@ -158,9 +166,9 @@ http.createServer(function(req, res){
             }
         }
 
-        let dataArray = [];
-        let axisInfoArray = [];
         if (reqArray.length > 0) {
+            let dataArray = [];
+            let axisInfoArray = [];
             executeQuery(reqArray, 0, res, dataArray, axisInfoArray);
         } else {
             res.end();
