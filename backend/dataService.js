@@ -154,20 +154,25 @@ let handleRtmCompareDam = function(param, res) {
 
   connection.query(damSql, (err, result) => {
     if (err) {
+      console.error(err);
       res.end();
       return;
     }
 
     let damData = [];
+    let totalPrice = 0;
     for (let i=0; i<result.length; i++) {
       let tmpData = result[i];
       //console.log(JSON.stringify(tmpData));
+      let point_price = tmpData["settlement_point_price"];
       damData.push({
         "x":tmpData["synthesis_time"]*1000,
-        "y":tmpData["settlement_point_price"]
-      })
+        "y":point_price
+      });
+      totalPrice += point_price;
     }
     console.log("damData length="+damData.length);
+    let damAveragePrice = totalPrice / damData.length;
 
     connection.query(rtmSql, (err, result) => {
       if (err) {
@@ -176,18 +181,22 @@ let handleRtmCompareDam = function(param, res) {
       }
 
       let rtmData = [];
+      let totalPrice = 0;
       for (let i=0; i<result.length; i++) {
         let tmpData = result[i];
         //console.log(JSON.stringify(tmpData));
+        let point_price = tmpData["settlement_point_price"];
         rtmData.push({
           "x":tmpData["synthesis_time"]*1000,
-          "y":tmpData["settlement_point_price"]
-        })
+          "y":point_price
+        });
+        totalPrice += point_price;
       }
       console.log("rtmData length="+rtmData.length);
+      let rtmAveragePrice = totalPrice / rtmData.length;
 
       let chartData = [damData, rtmData];
-      let ret = [{
+      let ret = [[{
         "chartData":chartData,
         "graphAxis":[
           {
@@ -200,7 +209,13 @@ let handleRtmCompareDam = function(param, res) {
           }
         ],
         "chartType":"lineMulti"
-      }];
+      }],
+      [
+        {
+          "dam_average_price":damAveragePrice,
+          "rtm_average_price":rtmAveragePrice
+        }
+      ]];
       res.write(JSON.stringify(ret));
       res.end();
     });
