@@ -100,6 +100,113 @@ let executeQuery = function(reqArray, i, res, dataArray, axisInfoArray) {
     }
 }
 
+let handleRtmAveragePrice = function(param, res) {
+  let start_time = param["startDate"];
+  let end_time = param["endDate"];
+
+  // param check
+  if (start_time > end_time) {
+    res.write("illegal startData and endDate");
+    res.end();
+    return;
+  }
+
+  let sql = "select AVG(settlement_point_price) from rtm_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\"";
+  connection.query(sql, (err, result) => {
+    if (err) {
+      res.end();
+      return;
+    }
+    console.log(result);
+    let dataString = JSON.stringify(result);
+    let data = JSON.parse(dataString);
+    res.write(JSON.stringify(data));
+    res.end();
+  });
+}
+
+let handleRtmCompareDam = function(param, res) {
+    let start_time = param["startDate"];
+    let end_time = param["endDate"];
+    let settlement_point = param["settlement_point"];
+    let repeated_hour_flag = param["repeated_hour_flag"];
+    let settlement_point_type = param["settlement_point_type"];
+
+    // param check
+    if (start_time > end_time) {
+      res.write("illegal startData and endDate");
+      res.end();
+      return;
+    }
+    if (repeated_hour_flag !== "N" && repeated_hour_flag !== "Y") {
+      res.write("nonsupport repeated_hour_flag. N or Y");
+      res.end();
+      return;
+    }
+    if (settlement_point.length < 2) {
+      res.write("wrong settlement_point");
+      res.end();
+      return;
+    }
+
+  let damSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from dam_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
+  let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\" AND settlement_point_type=\"" + settlement_point_type + "\"";
+
+  connection.query(damSql, (err, result) => {
+    if (err) {
+      res.end();
+      return;
+    }
+
+    let damData = [];
+    for (let i=0; i<result.length; i++) {
+      let tmpData = result[i];
+      //console.log(JSON.stringify(tmpData));
+      damData.push({
+        "x":tmpData["synthesis_time"]*1000,
+        "y":tmpData["settlement_point_price"]
+      })
+    }
+    console.log("damData length="+damData.length);
+
+    connection.query(rtmSql, (err, result) => {
+      if (err) {
+        res.end();
+        return;
+      }
+
+      let rtmData = [];
+      for (let i=0; i<result.length; i++) {
+        let tmpData = result[i];
+        //console.log(JSON.stringify(tmpData));
+        rtmData.push({
+          "x":tmpData["synthesis_time"]*1000,
+          "y":tmpData["settlement_point_price"]
+        })
+      }
+      console.log("rtmData length="+rtmData.length);
+
+      let chartData = [damData, rtmData];
+      let ret = [{
+        "chartData":chartData,
+        "graphAxis":[
+          {
+            "id":"axis1",
+            "label":"DAM"
+          },
+          {
+            "id":"axis2",
+            "label":"RTM"
+          }
+        ],
+        "chartType":"lineMulti"
+      }];
+      res.write(JSON.stringify(ret));
+      res.end();
+    });
+  });
+}
+
 http.createServer(function(req, res){
     var post = '';
 
@@ -110,9 +217,9 @@ http.createServer(function(req, res){
     req.on('end', function(){
         // post = querystring.parse(post);
         console.log("post="+post);
-        var reqArray = [];
+        var reqObj = {};
         try{
-            reqArray = JSON.parse(post);
+          reqObj = JSON.parse(post);
         } catch (e) {
             console.log("wrong json format");
             res.write("wrong json format");
@@ -120,136 +227,68 @@ http.createServer(function(req, res){
             return;
         }
 
-        if (reqArray.length > 4) {
-            res.write("req size exceeds the limit = 4");
-            res.end();
-            return;
-        }
-        for (let i=0; i<reqArray.length; i++){
-            let req = reqArray[i];
-            let reqType = req["type"];
-            let start_time = req["start_time"];
-            let end_time = req["end_time"];
-            let settlement_point = req["settlement_point"];
-            let repeated_hour_flag = req["repeated_hour_flag"];
-            let settlement_point_type = req["settlement_point_type"];
-
-            // param check
-            if (reqType !== "DAM" && reqType !== "RTM") {
-                res.write("nonsupport type. DAM or RTM");
-                res.end();
-                return;
-            }
-            let diff = end_time - start_time;
-            if (diff > 1000000) {
-                res.write("time diff too big.");
-                res.end();
-                return;
-            }
-            if (repeated_hour_flag !== "N" && repeated_hour_flag !== "Y") {
-                res.write("nonsupport repeated_hour_flag. N or Y");
-                res.end();
-                return;
-            }
-            if (settlement_point.length < 2) {
-                res.write("wrong settlement_point");
-                res.end();
-                return;
-            }
-            if (reqType === "RTM" && settlement_point_type.length < 1) {
-                res.write("RTM need settlement_point_type");
-                res.end();
-                return;
-            }
-        }
-
-        if (reqArray.length > 0) {
-            let dataArray = [];
-            let axisInfoArray = [];
-            executeQuery(reqArray, 0, res, dataArray, axisInfoArray);
+        let methodName = reqObj["methodName"];
+        if (methodName === "dam compare rtm") {
+          handleRtmCompareDam(reqObj["values"], res);
+        } else if (methodName === "average rtm"){
+          handleRtmAveragePrice(reqObj["values"], res);
         } else {
-            res.end();
+          let msg = "nonsupport methodName:" + methodName;
+          console.log(msg);
+          res.write(msg);
+          res.end();
         }
+
+        // if (reqArray.length > 4) {
+        //     res.write("req size exceeds the limit = 4");
+        //     res.end();
+        //     return;
+        // }
+        // for (let i=0; i<reqArray.length; i++){
+        //     let req = reqArray[i];
+        //     let reqType = req["type"];
+        //     let start_time = req["start_time"];
+        //     let end_time = req["end_time"];
+        //     let settlement_point = req["settlement_point"];
+        //     let repeated_hour_flag = req["repeated_hour_flag"];
+        //     let settlement_point_type = req["settlement_point_type"];
+        //
+        //     // param check
+        //     if (reqType !== "DAM" && reqType !== "RTM") {
+        //         res.write("nonsupport type. DAM or RTM");
+        //         res.end();
+        //         return;
+        //     }
+        //     let diff = end_time - start_time;
+        //     if (diff > 1000000) {
+        //         res.write("time diff too big.");
+        //         res.end();
+        //         return;
+        //     }
+        //     if (repeated_hour_flag !== "N" && repeated_hour_flag !== "Y") {
+        //         res.write("nonsupport repeated_hour_flag. N or Y");
+        //         res.end();
+        //         return;
+        //     }
+        //     if (settlement_point.length < 2) {
+        //         res.write("wrong settlement_point");
+        //         res.end();
+        //         return;
+        //     }
+        //     if (reqType === "RTM" && settlement_point_type.length < 1) {
+        //         res.write("RTM need settlement_point_type");
+        //         res.end();
+        //         return;
+        //     }
+        // }
+        //
+        // if (reqArray.length > 0) {
+        //     let dataArray = [];
+        //     let axisInfoArray = [];
+        //     executeQuery(reqArray, 0, res, dataArray, axisInfoArray);
+        // } else {
+        //     res.end();
+        // }
     });
 }).listen(4001);
 
-/*http.createServer(function(req, res){
-    var params = url.parse(req.url, true).query;
-    let start_time = params.start_time;
-    let end_time = params.end_time;
-    let settlement_point = params.settlement_point;
-
-    console.log("settlement_point=" + settlement_point);
-    console.log("11111111111:start_time="+start_time + " end_time="+end_time);
-
-    let diff = end_time - start_time;
-    if (diff > 1000000) {
-        res.write("time diff too big.");
-        res.end();
-        return;
-    }
-
-    if (start_time < end_time && settlement_point.length>0) {
-        let damSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from dam_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point=\"" + settlement_point + "\" AND repeated_hour_flag=\"N\"";
-        let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"N\" AND settlement_point_type=\"SH\"";
-
-        console.log("damSql="+damSql);
-        console.log("rtmSql="+rtmSql);
-        connection.query(damSql, (err, result) => {
-            if (err) {
-                res.end();
-                return;
-            }
-
-            let damData = [];
-            for (let i=0; i<result.length; i++) {
-                let tmpData = result[i];
-                //console.log(JSON.stringify(tmpData));
-                damData.push({
-                    "x":tmpData["synthesis_time"]*1000,
-                    "y":tmpData["settlement_point_price"]
-                })
-            }
-            console.log("damData length="+damData.length);
-
-            connection.query(rtmSql, (err, result) => {
-                if (err) {
-                    res.end();
-                    return;
-                }
-
-                let rtmData = [];
-                for (let i=0; i<result.length; i++) {
-                    let tmpData = result[i];
-                    //console.log(JSON.stringify(tmpData));
-                    rtmData.push({
-                        "x":tmpData["synthesis_time"]*1000,
-                        "y":tmpData["settlement_point_price"]
-                    })
-                }
-                console.log("rtmData length="+rtmData.length);
-
-                let chartData = [damData, rtmData];
-                let ret = {
-                    "chartData":chartData,
-                    "graphAxis":[
-                        {
-                            "id":"axis1",
-                            "label":"DAM"
-                        },
-                        {
-                            "id":"axis1",
-                            "label":"RTM"
-                        }
-                    ],
-                    "settlement_point":settlement_point,
-                    "repeated_hour_flag":"N",
-                    "settlement_point_type":"SH"
-                };
-                res.write(JSON.stringify(ret));
-                res.end();
-            });
-        });
-    }
-
-}).listen(8088);*/

@@ -27,14 +27,14 @@ export async function fetchTextMetricOptions() {
           name: 'startDate',
           type: 'text',
           description: 'ISO format string',
-          placeholder: '2020-10-15T00:00:00.000Z',
+          placeholder: '2020-01-01 00:00:00',
           required: true
         },
         {
           name: 'endDate',
           type: 'text',
           description: 'ISO format string',
-          placeholder: '2020-10-26T00:00:00.000Z',
+          placeholder: '2020-01-10 00:00:00',
           required: true
         },
         {
@@ -84,14 +84,14 @@ export async function fetchTextMetricOptions() {
           name: 'startDate',
           type: 'text',
           description: 'ISO format string',
-          placeholder: '2020-10-15T00:00:00.000Z',
+          placeholder: '2020-01-01 00:00:00',
           required: true
         },
         {
           name: 'endDate',
           type: 'text',
           description: 'ISO format string',
-          placeholder: '2020-10-26T00:00:00.000Z',
+          placeholder: '2020-01-10 00:00:00',
           required: true
         },
       ]
