@@ -6,4 +6,3 @@ module.exports = {dbConfig: {
   password: process.env.MYSQL_PASSWORD, // 填写你的mysql密码
   database: 'elec_price'
 }};
-
