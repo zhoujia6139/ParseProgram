@@ -2,13 +2,10 @@ const mysql = require('mysql');
 var http = require("http");
 var querystring = require('querystring');
 var url = require('url');
+const { dbConfig } = require('./db');
+const { AllOptions } = require('./metricConfig')
 
-const connection = mysql.createConnection({
-    host: 'localhost', // 填写你的mysql host
-    user: 'root', // 填写你的mysql用户名
-    password: 'zhoujia', // 填写你的mysql密码
-    database: 'elec_price'
-})
+const connection = mysql.createConnection(dbConfig)
 
 connection.connect(err => {
     if(err) throw err;
@@ -174,7 +171,7 @@ http.createServer(function(req, res){
             res.end();
         }
     });
-}).listen(8088);
+}).listen(4001);
 
 /*http.createServer(function(req, res){
     var params = url.parse(req.url, true).query;

@@ -1,11 +1,7 @@
 const mysql = require('mysql');
+const { dbConfig } = require('./db');
 
-const connection = mysql.createConnection({
-    //host: 'localhost', // 填写你的mysql host
-    host: '123.57.133.170', // 填写你的mysql host
-    user: 'root', // 填写你的mysql用户名
-    password: 'zhoujia' // 填写你的mysql密码
-})
+const connection = mysql.createConnection(dbConfig)
 
 connection.connect(err => {
     if(err) throw err;
