@@ -83,7 +83,7 @@ export async function fetchTextMetricOptions() {
                 { value: 'LZ_RAYBN', label: 'LZ_RAYBN' },
                 { value: 'LZ_SOUTH', label: 'LZ_SOUTH' },
                 { value: 'LZ_WEST', label: 'LZ_WEST' },
-                { value: 'HB_PAN', label: 'HB_PAN' },
+                { value: 'HB_PAN', label: 'HB_PAN' }
               ],
               required: true
             },
