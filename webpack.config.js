@@ -139,7 +139,7 @@ module.exports = {
   ]),
   devServer: {
     contentBase: sourcePath,
-    allowedHosts: 'all',
+    allowedHosts: ['node1.hawkguide.com', 'node1.hawkguide.com:4000', 'localhost'],
     hot: true,
     inline: true,
     historyApiFallback: {
