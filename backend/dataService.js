@@ -174,9 +174,8 @@ let handleRtmCompareDam = function(param, res) {
       } else {
         curtailCount++;
       }
-      totalPrice += point_price;
     }
-    console.log("damData length="+damData.length);
+    console.log(`damData totalPrice=${totalPrice} curtailCount=${curtailCount} length=`+damData.length);
     let damAveragePrice = totalPrice / damData.length;
     const curtailDamPercent = curtailCount / result.length;
 
@@ -187,7 +186,7 @@ let handleRtmCompareDam = function(param, res) {
       }
 
       let rtmData = [];
-      let totalPrice = 0;
+      let totalRtmPrice = 0;
       let curtailCount = 0;
       for (let i=0; i<result.length; i++) {
         let tmpData = result[i];
@@ -198,13 +197,13 @@ let handleRtmCompareDam = function(param, res) {
             "x":tmpData["synthesis_time"]*1000,
             "y":point_price
           });
-          totalPrice += point_price;
+          totalRtmPrice += point_price;
         } else {
           curtailCount++;
         }
       }
       console.log("rtmData length="+rtmData.length);
-      let rtmAveragePrice = totalPrice / rtmData.length;
+      let rtmAveragePrice = totalRtmPrice / rtmData.length;
       const curtailRtmPercent = curtailCount / result.length;
 
       let chartData = [damData, rtmData];
