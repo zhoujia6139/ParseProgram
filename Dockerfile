@@ -1,16 +1,12 @@
 
 # actual backend image
-FROM node:10.15.2-slim
+FROM node:12.14.1-slim
 WORKDIR /app/
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y git python build-essential
-
-RUN npm i npm@6.5.0 -g
+RUN npm i npm@7.20.0 -g
 RUN npm i typescript@3.7.4 -g
 
-COPY ./ ./
+COPY ./ /app/
 RUN npm ci && cd backend && npm ci
 
 
