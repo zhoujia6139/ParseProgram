@@ -150,8 +150,10 @@ let handleRtmCompareDam = function(param, res) {
     }
   const settlement_point0 = compares[0].settlement_point;
   const settlement_point1 = compares[1].settlement_point;
-  let damSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[0].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point0 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
-  let rtmSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[1].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point1 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
+  const settlementPointKey0 = compares[0].type === 'DAM' ? 'settlement_point' : 'settlement_point_name';
+  const settlementPointKey1 = compares[1].type === 'DAM' ? 'settlement_point' : 'settlement_point_name';
+  let damSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[0].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND " + settlementPointKey0 +"=\"" + settlement_point0 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
+  let rtmSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[1].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND " + settlementPointKey1 +"=\"" + settlement_point1 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
 
   connection.query(damSql, (err, result) => {
     if (err) {
@@ -183,6 +185,7 @@ let handleRtmCompareDam = function(param, res) {
 
     connection.query(rtmSql, (err, result) => {
       if (err) {
+        console.error(`err`, err)
         res.end();
         return;
       }
@@ -225,10 +228,10 @@ let handleRtmCompareDam = function(param, res) {
       },
 
         {
-          [`${settlement_point0}_average_price`]:damAveragePrice,
-         [`${settlement_point1}_average_price`]:rtmAveragePrice,
-          curtailDamPercent,
-          curtailRtmPercent
+          [`${settlement_point0}_${compares[0].type}_average_price`]:damAveragePrice,
+         [`${settlement_point1}_${compares[1].type}_average_price`]:rtmAveragePrice,
+          [`${settlement_point0}_${compares[0].type}_curtail_percent`]: curtailDamPercent,
+          [`${settlement_point1}_${compares[1].type}_curtail_percent`]: curtailRtmPercent
         }
       ];
       res.write(JSON.stringify(ret));

@@ -137,7 +137,8 @@ export const renderArray = ({ fields, title, baseSection, meta: { error } }: any
             if (conf.type === 'select') {
               return (
                 <Field
-                  name={conf.name}
+                  key={index}
+                  name={`${field}.${conf.name}`}
                   component={renderDropdownField}
                   options={conf.options}
                   label={conf.displayName || conf.name}
