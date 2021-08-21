@@ -70,13 +70,20 @@ export async function fetchTextMetricOptions() {
               label: 'settlement_point',
               options: [
                 { value: 'HB_BUSAVG', label: 'HB_BUSAVG' },
-                { value: 'HB_WEST', label: 'HB_WEST' },
                 { value: 'HB_HOUSTON', label: 'HB_HOUSTON' },
+                { value: 'HB_HUBAVG', label: 'HB_HUBAVG' },
                 { value: 'HB_NORTH', label: 'HB_NORTH' },
                 { value: 'HB_SOUTH', label: 'HB_SOUTH' },
+                { value: 'HB_WEST', label: 'HB_WEST' },
                 { value: 'LZ_AEN', label: 'LZ_AEN' },
                 { value: 'LZ_CPS', label: 'LZ_CPS' },
-                { value: 'LZ_HOUSTON', label: 'LZ_HOUSTON' }
+                { value: 'LZ_HOUSTON', label: 'LZ_HOUSTON' },
+                { value: 'LZ_LCRA', label: 'LZ_LCRA' },
+                { value: 'LZ_NORTH', label: 'LZ_NORTH' },
+                { value: 'LZ_RAYBN', label: 'LZ_RAYBN' },
+                { value: 'LZ_SOUTH', label: 'LZ_SOUTH' },
+                { value: 'LZ_WEST', label: 'LZ_WEST' },
+                { value: 'HB_PAN', label: 'HB_PAN' },
               ],
               required: true
             },
