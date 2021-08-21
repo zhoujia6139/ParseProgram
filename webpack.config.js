@@ -139,6 +139,7 @@ module.exports = {
   ]),
   devServer: {
     contentBase: sourcePath,
+    allowedHosts: 'all',
     hot: true,
     inline: true,
     historyApiFallback: {
