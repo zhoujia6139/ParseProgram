@@ -134,6 +134,18 @@ export const renderArray = ({ fields, title, baseSection, meta: { error } }: any
             {title} #{index} <button onClick={() => fields.remove(index)}>-Delete</button>
           </div>
           {_.map(baseSection, (conf: FormFormat.FormParam, index: number) => {
+            if (conf.type === 'select') {
+              return (
+                <Field
+                  name={conf.name}
+                  component={renderDropdownField}
+                  options={conf.options}
+                  label={conf.displayName || conf.name}
+                  title={conf.displayName || conf.name}
+                  placeholder={conf.placeholder}
+                />
+              );
+            }
             return (
               <Field
                 key={index}
@@ -180,6 +192,7 @@ export function renderFormFields(formConfig: FormFormat.FormParam[]) {
             name={conf.name}
             component={renderDropdownField}
             options={conf.options}
+            label={conf.displayName || conf.name}
             title={conf.displayName || conf.name}
           />
         </div>

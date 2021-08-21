@@ -38,17 +38,12 @@ export async function fetchTextMetricOptions() {
           required: true
         },
         {
-          name: 'settlement_point',
-          type: 'text',
-          description: 'settlement point',
-          placeholder: 'HB_BUSAVG',
-          required: true
-        },
-        {
           name: 'repeated_hour_flag',
-          type: 'text',
           description: 'Y or N',
           placeholder: 'N',
+          label: 'repeated_hour_flag',
+          type: 'select',
+          options: [{ value: 'N', label: 'N' }, { value: 'Y', label: 'Y' }],
           required: true
         },
         {
@@ -59,16 +54,37 @@ export async function fetchTextMetricOptions() {
           required: false
         },
         {
-          name: 'types',
+          name: 'compares',
           type: 'array',
           description: 'multiple pairs',
           required: true,
-          initialValue: [{ type: 'DAM' }, { type: 'RTM' }],
+          initialValue: [
+            { type: 'RTM', settlement_point: 'HB_WEST' },
+            { type: 'RTM', settlement_point: 'HB_NORTH' }
+          ],
           baseSection: [
+            {
+              name: 'settlement_point',
+              description: 'settlement point',
+              type: 'select',
+              label: 'settlement_point',
+              options: [
+                { value: 'HB_BUSAVG', label: 'HB_BUSAVG' },
+                { value: 'HB_WEST', label: 'HB_WEST' },
+                { value: 'HB_HOUSTON', label: 'HB_HOUSTON' },
+                { value: 'HB_NORTH', label: 'HB_NORTH' },
+                { value: 'HB_SOUTH', label: 'HB_SOUTH' },
+                { value: 'LZ_AEN', label: 'LZ_AEN' },
+                { value: 'LZ_CPS', label: 'LZ_CPS' },
+                { value: 'LZ_HOUSTON', label: 'LZ_HOUSTON' }
+              ],
+              required: true
+            },
             {
               name: 'type',
               type: 'select',
-              options: [{ value: 'DAM', label: 'DAM' }, { value: 'RTM', label: 'RTM' }]
+              label: 'type',
+              options: [{ value: 'RTM', label: 'RTM' }, { value: 'DAM', label: 'DAM' }]
             }
           ]
         }

@@ -127,8 +127,9 @@ let handleRtmAveragePrice = function(param, res) {
 let handleRtmCompareDam = function(param, res) {
     let start_time = param["startDate"];
     let end_time = param["endDate"];
-    let settlement_point = param["settlement_point"];
     let repeated_hour_flag = param["repeated_hour_flag"];
+    let compares = param["compares"];
+    console.log(`compares`, compares);
     const curtail_over_price = parseFloat(param.curtail_over_price);
 
     // param check
@@ -142,14 +143,15 @@ let handleRtmCompareDam = function(param, res) {
       res.end();
       return;
     }
-    if (settlement_point.length < 2) {
+    if (compares.length < 2) {
       res.write("wrong settlement_point");
       res.end();
       return;
     }
-
-  let damSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from dam_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
-  let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
+  const settlement_point0 = compares[0].settlement_point;
+  const settlement_point1 = compares[1].settlement_point;
+  let damSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[0].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point0 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
+  let rtmSql = `select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from ${compares[1].type.toLowerCase()}_history where synthesis_time BETWEEN "` + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point1 + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
 
   connection.query(damSql, (err, result) => {
     if (err) {
@@ -212,19 +214,19 @@ let handleRtmCompareDam = function(param, res) {
         "graphAxis":[
           {
             "id":"axis1",
-            "label":"DAM"
+            "label":settlement_point0 + ' ' + compares[0].type
           },
           {
             "id":"axis1",
-            "label":"RTM"
+            "label":settlement_point1 + ' ' + compares[1].type
           }
         ],
         "chartType":"lineMulti"
       },
 
         {
-          "dam_average_price":damAveragePrice,
-          "rtm_average_price":rtmAveragePrice,
+          [`${settlement_point0}_average_price`]:damAveragePrice,
+         [`${settlement_point1}_average_price`]:rtmAveragePrice,
           curtailDamPercent,
           curtailRtmPercent
         }
