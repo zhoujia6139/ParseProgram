@@ -28,7 +28,6 @@ let executeQuery = function(reqArray, i, res, dataArray, axisInfoArray) {
     let end_time = req["end_time"];
     let settlement_point = req["settlement_point"];
     let repeated_hour_flag = req["repeated_hour_flag"];
-    let settlement_point_type = req["settlement_point_type"];
 
     let axitLabel = reqType + "-" + settlement_point + "-" + start_time;
     let axisInfo = {
@@ -38,7 +37,7 @@ let executeQuery = function(reqArray, i, res, dataArray, axisInfoArray) {
     axisInfoArray.push(axisInfo);
 
     if (reqType === "RTM") {
-        let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\" AND settlement_point_type=\"" + settlement_point_type + "\"";
+        let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where UNIX_TIMESTAMP(synthesis_time) BETWEEN " + start_time + " AND " + end_time + " AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
         connection.query(rtmSql, (err, result) => {
             if (err) {
                 res.end();
@@ -130,7 +129,7 @@ let handleRtmCompareDam = function(param, res) {
     let end_time = param["endDate"];
     let settlement_point = param["settlement_point"];
     let repeated_hour_flag = param["repeated_hour_flag"];
-    let settlement_point_type = param["settlement_point_type"];
+    const curtail_over_price = parseFloat(param.curtail_over_price);
 
     // param check
     if (start_time > end_time) {
@@ -150,7 +149,7 @@ let handleRtmCompareDam = function(param, res) {
     }
 
   let damSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from dam_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
-  let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\" AND settlement_point_type=\"" + settlement_point_type + "\"";
+  let rtmSql = "select UNIX_TIMESTAMP(synthesis_time) as synthesis_time, settlement_point_price from rtm_history where synthesis_time BETWEEN \"" + start_time + "\" AND \"" + end_time + "\" AND settlement_point_name=\"" + settlement_point + "\" AND repeated_hour_flag=\"" + repeated_hour_flag + "\"";
 
   connection.query(damSql, (err, result) => {
     if (err) {
@@ -161,18 +160,25 @@ let handleRtmCompareDam = function(param, res) {
 
     let damData = [];
     let totalPrice = 0;
+    let curtailCount = 0;
     for (let i=0; i<result.length; i++) {
       let tmpData = result[i];
       //console.log(JSON.stringify(tmpData));
       let point_price = tmpData["settlement_point_price"];
-      damData.push({
-        "x":tmpData["synthesis_time"]*1000,
-        "y":point_price
-      });
+      if (!curtail_over_price || point_price < curtail_over_price) {
+        damData.push({
+          "x":tmpData["synthesis_time"]*1000,
+          "y":point_price
+        });
+        totalPrice += point_price;
+      } else {
+        curtailCount++;
+      }
       totalPrice += point_price;
     }
     console.log("damData length="+damData.length);
     let damAveragePrice = totalPrice / damData.length;
+    const curtailDamPercent = curtailCount / result.length;
 
     connection.query(rtmSql, (err, result) => {
       if (err) {
@@ -182,18 +188,24 @@ let handleRtmCompareDam = function(param, res) {
 
       let rtmData = [];
       let totalPrice = 0;
+      let curtailCount = 0;
       for (let i=0; i<result.length; i++) {
         let tmpData = result[i];
         //console.log(JSON.stringify(tmpData));
         let point_price = tmpData["settlement_point_price"];
-        rtmData.push({
-          "x":tmpData["synthesis_time"]*1000,
-          "y":point_price
-        });
-        totalPrice += point_price;
+        if (!curtail_over_price || point_price < curtail_over_price) {
+          rtmData.push({
+            "x":tmpData["synthesis_time"]*1000,
+            "y":point_price
+          });
+          totalPrice += point_price;
+        } else {
+          curtailCount++;
+        }
       }
       console.log("rtmData length="+rtmData.length);
       let rtmAveragePrice = totalPrice / rtmData.length;
+      const curtailRtmPercent = curtailCount / result.length;
 
       let chartData = [damData, rtmData];
       let ret = [{
@@ -204,7 +216,7 @@ let handleRtmCompareDam = function(param, res) {
             "label":"DAM"
           },
           {
-            "id":"axis2",
+            "id":"axis1",
             "label":"RTM"
           }
         ],
@@ -213,7 +225,9 @@ let handleRtmCompareDam = function(param, res) {
 
         {
           "dam_average_price":damAveragePrice,
-          "rtm_average_price":rtmAveragePrice
+          "rtm_average_price":rtmAveragePrice,
+          curtailDamPercent,
+          curtailRtmPercent
         }
       ];
       res.write(JSON.stringify(ret));

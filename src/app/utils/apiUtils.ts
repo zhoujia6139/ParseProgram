@@ -45,18 +45,18 @@ export async function fetchTextMetricOptions() {
           required: true
         },
         {
-          name: 'settlement_point_type',
-          type: 'text',
-          description: 'settlement point type',
-          placeholder: 'SH',
-          required: true
-        },
-        {
           name: 'repeated_hour_flag',
           type: 'text',
           description: 'Y or N',
           placeholder: 'N',
           required: true
+        },
+        {
+          name: 'curtail_over_price',
+          type: 'text',
+          description: 'price',
+          placeholder: '200',
+          required: false
         },
         {
           name: 'types',
