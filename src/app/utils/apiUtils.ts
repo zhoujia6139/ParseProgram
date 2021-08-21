@@ -93,7 +93,7 @@ export async function fetchTextMetricOptions() {
           description: 'ISO format string',
           placeholder: '2020-01-10 00:00:00',
           required: true
-        },
+        }
       ]
     }
   ];

@@ -196,7 +196,7 @@ let handleRtmCompareDam = function(param, res) {
       let rtmAveragePrice = totalPrice / rtmData.length;
 
       let chartData = [damData, rtmData];
-      let ret = [[{
+      let ret = [{
         "chartData":chartData,
         "graphAxis":[
           {
@@ -209,13 +209,13 @@ let handleRtmCompareDam = function(param, res) {
           }
         ],
         "chartType":"lineMulti"
-      }],
-      [
+      },
+
         {
           "dam_average_price":damAveragePrice,
           "rtm_average_price":rtmAveragePrice
         }
-      ]];
+      ];
       res.write(JSON.stringify(ret));
       res.end();
     });
